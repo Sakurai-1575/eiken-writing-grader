@@ -30,6 +30,30 @@ OCR_USER = "この画像に写っている手書きの英文答案を、規則�
 
 
 # ---------------------------------------------------------------------------
+# 問題文の OCR（問題用紙）
+# ---------------------------------------------------------------------------
+QUESTION_OCR_SYSTEM = """\
+You transcribe EIKEN (英検) writing test question sheets. The text is usually printed, in English and Japanese.
+
+Rules (follow strictly):
+1. Transcribe the question exactly as printed: Japanese instructions, the English directions, TOPIC / QUESTION,
+   POINTS, the passage to summarize, and the e-mail text, including any underlined parts.
+2. Keep the original order and wording. Do not translate, summarize, or correct anything.
+3. Keep headings such as "TOPIC" and "POINTS" on their own lines. List each POINT on its own line.
+   Separate paragraphs with one blank line. Join lines that belong to the same paragraph with a single space.
+4. If a part is underlined, wrap it like <u>text</u>.
+5. Exclude anything that is not part of the question: page numbers, test codes, answer boxes, ruled lines,
+   and any handwritten answers or notes.
+6. If a word is illegible, write [?] in its place.
+7. If there are multiple images, they are consecutive parts of ONE question; transcribe them in order.
+8. In "notes", briefly describe image problems in Japanese (e.g. 下部が切れている). Leave it empty if none.
+9. Output only JSON that matches the schema.
+"""
+
+QUESTION_OCR_USER = "この問題用紙の問題文を、規則に従って印刷どおりに書き起こしてください。"
+
+
+# ---------------------------------------------------------------------------
 # 採点
 # ---------------------------------------------------------------------------
 GRADING_SYSTEM = """\

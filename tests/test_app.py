@@ -9,6 +9,7 @@ import responses
 from streamlit.testing.v1 import AppTest
 
 from eiken_grader.config import load_settings
+from eiken_grader.ui import components
 from tests.conftest import SAMPLE_ANSWER, SAMPLE_QUESTION, gemini_response
 
 APP = str(Path(__file__).resolve().parents[1] / "app.py")
@@ -67,7 +68,7 @@ def test_full_grading_flow_calls_api_once(api):
     at.text_area(key="w_question").input(SAMPLE_QUESTION).run()
     button(at, "次へ").click().run()
     # 直接入力モードで答案を入力
-    at.session_state["w_mode"] = "直接入力する"
+    at.session_state["w_mode"] = components.MODE_TYPE
     at.run()
     button(at, "答案を入力する").click().run()
     assert at.session_state["step"] == 3
@@ -80,7 +81,7 @@ def test_full_grading_flow_calls_api_once(api):
     assert len(api.calls) == 1
     assert at.session_state["is_busy"] is False
     assert at.session_state["pdf_bytes"].startswith(b"%PDF")
-    assert any("10 <span" in m.value for m in at.markdown)  # 総合得点
+    assert any('class="num">10<small> / 16</small>' in m.value for m in at.markdown)  # 総合得点
 
     # 結果画面での再描画・操作では API を呼ばない
     at.run()
@@ -166,3 +167,80 @@ def test_result_screen_is_single_vertical_list(api):
     ]
     corr_cards = [m.value for m in at.markdown if 'class="eg-corr"' in m.value]
     assert len(corr_cards) == 5 and "becuase" in corr_cards[0]
+
+
+def test_review_shows_word_count_without_paragraphs():
+    at = new_app().run()
+    at.session_state["grade_id"] = "g2"
+    at.session_state["task_id"] = "opinion"
+    at.session_state["question"] = SAMPLE_QUESTION
+    at.session_state["answer"] = SAMPLE_ANSWER
+    at.session_state["step"] = 3
+    at.run()
+    page = " ".join(m.value for m in at.markdown)
+    assert "語数: 72語" in page and "目安 80〜100語・不足" in page
+    assert "段落" not in page
+
+
+def test_question_manual_mode_is_default_and_calls_no_api():
+    with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
+        at = new_app().run()
+        assert at.session_state["w_q_mode"] == components.Q_MODE_TYPE
+        assert not at.get("file_uploader")  # 手入力モードではアップローダーを出さない
+        at.text_area(key="w_question").input(SAMPLE_QUESTION).run()
+        button(at, "次へ").click().run()
+        assert at.session_state["step"] == 2
+        assert len(rsps.calls) == 0
+
+
+def test_question_image_mode_shows_uploader_and_read_button():
+    at = new_app().run()
+    at.session_state["w_q_mode"] = components.Q_MODE_IMAGE
+    at.run()
+    assert at.get("file_uploader")
+    read_btn = button(at, "問題文を読み取る")
+    assert read_btn.disabled  # 画像が無いうちは押せない
+
+
+def test_question_ocr_result_is_reflected_in_editable_textarea():
+    """OCR 結果が問題文の入力欄に反映され、そのまま編集できること（ウィジェット更新エラーが出ないこと）。"""
+    from eiken_grader.services.image_utils import prepare_image
+    from tests.conftest import make_image_bytes
+
+    settings = load_settings()
+    url = f"{settings.gemini.api_base}/models/{settings.gemini.model}:generateContent"
+    passage = "TOPIC: Should schools ban smartphones?\n\nPOINTS\nSafety\nStudy"
+    with responses.RequestsMock() as rsps:
+        rsps.post(url, json=gemini_response({"text": passage, "uncertain_words": [], "notes": ""}))
+        at = new_app().run()
+        at.session_state["w_q_mode"] = components.Q_MODE_IMAGE
+        at.text_area(key="w_question").input("old text").run()
+        # 「問題文を読み取る」ボタン押下時と同じ状態にする（画像を保持して処理を予約）
+        at.session_state["question_images"] = [prepare_image(make_image_bytes())]
+        at.session_state["is_busy"] = True
+        at.session_state["pending_action"] = "question_ocr"
+        at.run()
+        assert not at.exception
+        assert len(rsps.calls) == 1
+    assert at.text_area(key="w_question").value == passage
+    assert at.session_state["question"] == passage
+    assert at.session_state["step"] == 1
+    assert any("問題文を読み取りました" in i.value for i in at.info)
+    # 読み取り後に手で修正でき、その内容で次へ進める
+    at.text_area(key="w_question").input(passage + "\nedited").run()
+    button(at, "次へ").click().run()
+    assert at.session_state["question"].endswith("edited")
+    assert at.session_state["step"] == 2
+
+
+def test_stepper_marks_current_and_done_steps():
+    at = new_app().run()
+    stepper = next(m.value for m in at.markdown if m.value.startswith('<ol class="eg-stepper"'))
+    assert stepper.count('class="eg-stp active"') == 1 and "aria-current" in stepper
+    at.session_state["grade_id"] = "g2"
+    at.session_state["task_id"] = "opinion"
+    at.session_state["question"] = SAMPLE_QUESTION
+    at.session_state["step"] = 3
+    at.run()
+    stepper = next(m.value for m in at.markdown if m.value.startswith('<ol class="eg-stepper"'))
+    assert stepper.count('class="eg-stp done"') == 2 and "✓" in stepper

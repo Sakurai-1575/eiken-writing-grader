@@ -21,7 +21,7 @@ SETTINGS_PATH = CONFIG_DIR / "settings.toml"
 RUBRICS_PATH = CONFIG_DIR / "rubrics.toml"
 FONTS_DIR = PROJECT_ROOT / "assets" / "fonts"
 
-DEFAULT_MODEL = "gemini-flash-latest"
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
 
 
 # ---------------------------------------------------------------------------

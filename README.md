@@ -23,7 +23,7 @@ pip install -r requirements-dev.txt
 
 ```toml
 GEMINI_API_KEY = "Google AI Studio で発行した API キー"
-# GEMINI_MODEL = "gemini-flash-latest"   # 任意: モデル名の上書き
+# GEMINI_MODEL = "gemini-3.5-flash-lite"   # 任意: モデル名の上書き
 # APP_PASSCODE = "任意のパスコード"     # 任意: 設定するとパスコード画面を表示
 ```
 
@@ -48,7 +48,7 @@ streamlit run app.py       # http://localhost:8501
 
 | ファイル | 内容 |
 |---|---|
-| `config/settings.toml` | モデル名（既定 `gemini-flash-latest`）とフォールバック先（`gemini-3.5-flash-lite`）、開発モード（`[debug]`）、タイムアウト、再試行回数、レート制限（RPM/RPD・クールダウン）、画像サイズ |
+| `config/settings.toml` | モデル名（既定 `gemini-3.5-flash-lite`）とフォールバック先（`gemini-flash-latest`）、開発モード（`[debug]`）、タイムアウト、再試行回数、レート制限（RPM/RPD・クールダウン）、画像サイズ |
 | `config/rubrics.toml` | 級・問題形式・語数目安・採点観点。**級の追加はこのファイルへの追記のみで可能**（3級・1級の雛形あり） |
 | `.streamlit/config.toml` | アップロード上限、テーマ、利用統計の無効化 |
 

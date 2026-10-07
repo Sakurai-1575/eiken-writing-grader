@@ -25,11 +25,6 @@ def count_words(text: str) -> int:
     return len(_WORD_RE.findall(strip_markers(text)))
 
 
-def count_paragraphs(text: str) -> int:
-    blocks = [b for b in re.split(r"\n\s*\n", text.strip()) if b.strip()]
-    return len(blocks)
-
-
 def illegible_count(text: str) -> int:
     return text.count(ILLEGIBLE_MARK)
 

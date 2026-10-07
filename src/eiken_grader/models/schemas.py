@@ -70,7 +70,6 @@ class GradingReport(BaseModel):
     answer: str
     word_count: int
     word_range: tuple[int, int]
-    paragraph_count: int
     scores: list[ScoredCriterion]
     total_score: int
     max_total: int

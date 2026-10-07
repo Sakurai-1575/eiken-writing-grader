@@ -3,7 +3,7 @@
 AI の出力は鵜呑みにせず、以下を Python 側で保証する:
 - 観点の過不足チェック（欠落はエラー、重複・未知の観点は除外）と rubric 順への並べ替え
 - 得点を 0〜満点にクランプし、合計点は Python で再計算
-- 語数・段落数はローカル計測値を正とする
+- 語数はローカル計測値を正とする
 - 添削の original が答案に実在するか検証し、実在しないものは「参考」として末尾へ
 """
 
@@ -23,7 +23,7 @@ from eiken_grader.models.schemas import (
 )
 from eiken_grader.services.ocr import JsonGenerator
 from eiken_grader.services.prompts import GRADING_SYSTEM, build_grading_prompt
-from eiken_grader.services.text_stats import count_paragraphs, count_words, strip_markers
+from eiken_grader.services.text_stats import count_words, strip_markers
 
 JST = timezone(timedelta(hours=9))
 
@@ -135,7 +135,6 @@ def postprocess(
         answer=answer.strip(),
         word_count=count_words(answer),
         word_range=task.word_range,
-        paragraph_count=count_paragraphs(answer),
         scores=scores,
         total_score=sum(s.score for s in scores),
         max_total=task.max_total,

@@ -24,8 +24,13 @@ class FakeClient:
         if self.fail:
             raise self.fail
         if schema is OcrResult:
+            if "question sheets" in system_instruction:
+                return OcrResult(text=self.question_text, notes=self.question_notes)
             return OcrResult(text="I thinks {becuase?} it is good.", uncertain_words=["becuase"])
         return self.ai_output
+
+    question_text = "TOPIC: Should students wear uniforms?\nPOINTS\nCost\nIdentity"
+    question_notes = ""
 
 
 class Clock:
@@ -181,7 +186,11 @@ def test_ocr_flow_and_cache(ss, ctx):
     S.request_action(ss, S.ACTION_OCR)
     ctrl.run_pending()
     assert ss[K.STEP] == S.STEP_REVIEW
-    assert ss[K.ANSWER] == ss[K.W_ANSWER] == "I thinks {becuase?} it is good."
+    assert ss[K.ANSWER] == "I thinks {becuase?} it is good."
+    # 入力欄への反映は次回描画の開始時（ウィジェット生成前）に行う
+    assert ss[K.WIDGET_SYNC] == {K.W_ANSWER: "I thinks {becuase?} it is good."}
+    S.apply_widget_sync(ss)
+    assert ss[K.W_ANSWER] == "I thinks {becuase?} it is good." and ss[K.WIDGET_SYNC] == {}
     # 同じ画像の再読み取りは API を呼ばない
     S.request_action(ss, S.ACTION_OCR)
     ctrl.run_pending()
@@ -209,3 +218,79 @@ def test_sync_widget_does_not_overwrite(ss):
     ss[K.W_QUESTION] = "typing"
     S.sync_widget(ss, K.QUESTION, K.W_QUESTION)
     assert ss[K.W_QUESTION] == "typing"
+
+
+# --- 問題文の OCR -------------------------------------------------------------
+def test_question_ocr_fills_question_and_stays_on_setup(ss, ctx):
+    ctrl, client, _, _ = ctx
+    ss[K.QUESTION_IMAGES] = [prepare_image(make_image_bytes())]
+    assert S.request_action(ss, S.ACTION_QUESTION_OCR)
+    ctrl.run_pending()
+    assert client.calls == ["OcrResult"]  # API は 1 回だけ
+    assert ss[K.QUESTION] == FakeClient.question_text
+    assert ss[K.WIDGET_SYNC] == {K.W_QUESTION: FakeClient.question_text}
+    assert ss[K.STEP] == S.STEP_SETUP  # 画面は移動せず、その場で修正できる
+    assert "問題文を読み取りました" in ss[K.NOTICE]
+    assert ss[K.IS_BUSY] is False and ss[K.ERROR] is None
+
+
+def test_question_ocr_cached_and_separate_from_answer_ocr(ss, ctx):
+    ctrl, client, clock, _ = ctx
+    img = prepare_image(make_image_bytes())
+    ss[K.QUESTION_IMAGES] = [img]
+    S.request_action(ss, S.ACTION_QUESTION_OCR)
+    ctrl.run_pending()
+    S.request_action(ss, S.ACTION_QUESTION_OCR)
+    ctrl.run_pending()  # 同じ画像 → キャッシュ（API なし・クールダウンにもかからない）
+    assert client.calls == ["OcrResult"]
+    assert ss[K.ERROR] is None
+    # 同じ画像でも答案 OCR は別プロンプトなのでキャッシュを共有しない
+    clock.t += 60
+    ss[K.IMAGES] = [img]
+    S.request_action(ss, S.ACTION_OCR)
+    ctrl.run_pending()
+    assert client.calls == ["OcrResult", "OcrResult"]
+    assert ss[K.ANSWER].startswith("I thinks")
+
+
+def test_question_ocr_without_images(ss, ctx):
+    ctrl, client, _, _ = ctx
+    S.request_action(ss, S.ACTION_QUESTION_OCR)
+    ctrl.run_pending()
+    assert client.calls == [] and "問題用紙" in ss[K.ERROR]
+
+
+def test_question_ocr_empty_result_is_error(ss, ctx, monkeypatch):
+    ctrl, client, _, _ = ctx
+    monkeypatch.setattr(FakeClient, "question_text", "   ")
+    ss[K.QUESTION_IMAGES] = [prepare_image(make_image_bytes())]
+    ss[K.QUESTION] = "keep me"
+    S.request_action(ss, S.ACTION_QUESTION_OCR)
+    ctrl.run_pending()
+    assert "読み取れませんでした" in ss[K.ERROR]
+    assert ss[K.QUESTION] == "keep me"  # 既存の入力は消さない
+    assert ss[K.WIDGET_SYNC] == {}
+
+
+def test_question_ocr_notes_shown(ss, ctx, monkeypatch):
+    ctrl, _, _, _ = ctx
+    monkeypatch.setattr(FakeClient, "question_notes", "下部が切れている")
+    ss[K.QUESTION_IMAGES] = [prepare_image(make_image_bytes())]
+    S.request_action(ss, S.ACTION_QUESTION_OCR)
+    ctrl.run_pending()
+    assert "下部が切れている" in ss[K.NOTICE]
+
+
+def test_question_images_cleared_on_reset(ss):
+    ss[K.QUESTION_IMAGES] = ["x"]
+    ss["q_prep_cache"] = {"a": 1}
+    S.queue_widget_value(ss, K.W_QUESTION, "q")
+    S.reset_session(ss)
+    assert ss[K.QUESTION_IMAGES] == [] and "q_prep_cache" not in ss and ss[K.WIDGET_SYNC] == {}
+
+
+def test_apply_widget_sync_overwrites_and_clears():
+    ss: dict = {K.W_QUESTION: "old", K.WIDGET_SYNC: {K.W_QUESTION: "new", K.W_ANSWER: "a"}}
+    S.apply_widget_sync(ss)
+    assert ss[K.W_QUESTION] == "new" and ss[K.W_ANSWER] == "a" and ss[K.WIDGET_SYNC] == {}
+    S.apply_widget_sync({})  # 予約がなくてもエラーにならない

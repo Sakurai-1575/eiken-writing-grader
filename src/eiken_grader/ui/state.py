@@ -25,7 +25,7 @@ from eiken_grader.reports.markdown_report import render_markdown
 from eiken_grader.reports.pdf_report import render_pdf
 from eiken_grader.services.grading import grade_answer, input_hash
 from eiken_grader.services.image_utils import images_digest
-from eiken_grader.services.ocr import JsonGenerator, transcribe
+from eiken_grader.services.ocr import JsonGenerator, transcribe, transcribe_question
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,8 @@ STEP_REVIEW = 3
 STEP_RESULT = 4
 
 # --- アクション -------------------------------------------------------------
-ACTION_OCR = "ocr"
+ACTION_OCR = "ocr"  # 答案の読み取り
+ACTION_QUESTION_OCR = "question_ocr"  # 問題文の読み取り（画像から取り込む場合のみ）
 ACTION_GRADE = "grade"
 
 
@@ -48,7 +49,8 @@ class K:
     GRADE_ID = "grade_id"
     TASK_ID = "task_id"
     QUESTION = "question"
-    IMAGES = "images"  # list[PreparedImage]
+    QUESTION_IMAGES = "question_images"  # list[PreparedImage]（問題用紙）
+    IMAGES = "images"  # list[PreparedImage]（答案）
     OCR_RESULT = "ocr_result"  # OcrResult | None
     ANSWER = "answer"
     REPORT = "report"  # GradingReport | None
@@ -67,6 +69,9 @@ class K:
     AUTH_FAILS = "auth_fails"
     AUTH_LOCK_UNTIL = "auth_lock_until"
     UPLOADER_NONCE = "uploader_nonce"
+    # 次回の描画開始時にウィジェットへ反映する値 {widget_key: value}
+    # （描画済みのウィジェットの値は同じ実行中に変更できないため、いったん保留する）
+    WIDGET_SYNC = "widget_sync"
     # 入力ウィジェットのキー（ステップ切替で消えないよう、保存用キーと分けている）
     W_GRADE = "w_grade"
     W_TASK = "w_task"
@@ -80,6 +85,7 @@ DEFAULTS: dict[str, Any] = {
     K.GRADE_ID: None,
     K.TASK_ID: None,
     K.QUESTION: "",
+    K.QUESTION_IMAGES: [],
     K.IMAGES: [],
     K.OCR_RESULT: None,
     K.ANSWER: "",
@@ -99,6 +105,7 @@ DEFAULTS: dict[str, Any] = {
     K.AUTH_FAILS: 0,
     K.AUTH_LOCK_UNTIL: 0.0,
     K.UPLOADER_NONCE: 0,
+    K.WIDGET_SYNC: {},
 }
 
 # リセット後も残すキー（認証状態のみ。答案・結果・画像はすべて消去する）
@@ -155,6 +162,19 @@ def sync_widget(ss: State, store_key: str, widget_key: str) -> None:
         ss[widget_key] = ss.get(store_key)
 
 
+def queue_widget_value(ss: State, widget_key: str, value: Any) -> None:
+    """ウィジェットの値を、次回の描画開始時（ウィジェット生成前）に書き換えるよう予約する。"""
+    ss.setdefault(K.WIDGET_SYNC, {})[widget_key] = value
+
+
+def apply_widget_sync(ss: State) -> None:
+    """予約されたウィジェット値を反映する。毎回の描画の最初（ウィジェット生成前）に呼ぶ。"""
+    pending = ss.get(K.WIDGET_SYNC) or {}
+    for key, value in pending.items():
+        ss[key] = value
+    ss[K.WIDGET_SYNC] = {}
+
+
 @dataclass
 class Controller:
     """API を呼ぶ操作の実行を担う。client_factory は API 呼び出しが必要になった時点で初めて呼ぶ。"""
@@ -176,6 +196,8 @@ class Controller:
         try:
             if action == ACTION_OCR:
                 self._run_ocr()
+            elif action == ACTION_QUESTION_OCR:
+                self._run_question_ocr()
             elif action == ACTION_GRADE:
                 self._run_grade()
         except AppError as e:
@@ -219,24 +241,42 @@ class Controller:
     def _mark_called(self) -> None:
         self.ss[K.LAST_CALL_AT] = self.clock()
 
-    def _run_ocr(self) -> None:
-        images = self.ss.get(K.IMAGES) or []
-        if not images:
-            raise AppError("答案の画像がありません。撮影またはアップロードしてください。")
-        digest = images_digest(images)
+    def _cached_ocr(self, kind: str, images: list, run: Callable[..., OcrResult]) -> OcrResult:
+        """同じ画像の読み取り結果はセッション内で再利用する（API を呼ばない）。"""
+        key = f"{kind}:{images_digest(images)}"
         cache: dict[str, OcrResult] = self.ss[K.OCR_CACHE]
-        result = cache.get(digest)
+        result = cache.get(key)
         if result is None:
             self._check_cooldown()
             client = self.client_factory()
             self._mark_called()
-            result = transcribe(client, images, self.settings.gemini.temperature_ocr)
-            cache[digest] = result
+            result = run(client, images, self.settings.gemini.temperature_ocr)
+            cache[key] = result
+        return result
+
+    def _run_ocr(self) -> None:
+        images = self.ss.get(K.IMAGES) or []
+        if not images:
+            raise AppError("答案の画像がありません。撮影またはアップロードしてください。")
+        result = self._cached_ocr("answer", images, transcribe)
         self.ss[K.OCR_RESULT] = result
         self.ss[K.ANSWER] = result.text
-        self.ss[K.W_ANSWER] = result.text
+        queue_widget_value(self.ss, K.W_ANSWER, result.text)
         self.ss.pop(K.W_CONFIRM_MARKERS, None)
         go(self.ss, STEP_REVIEW)
+
+    def _run_question_ocr(self) -> None:
+        images = self.ss.get(K.QUESTION_IMAGES) or []
+        if not images:
+            raise AppError("問題用紙の画像がありません。撮影またはアップロードしてください。")
+        result = self._cached_ocr("question", images, transcribe_question)
+        if not result.text.strip():
+            raise AppError("問題文を読み取れませんでした。明るい場所で真上から撮影し直すか、手入力してください。")
+        self.ss[K.QUESTION] = result.text
+        # 問題文の入力欄は同じ画面（Step 1）に表示中のため、次の描画開始時に反映する
+        queue_widget_value(self.ss, K.W_QUESTION, result.text)
+        note = f"（読み取りメモ: {result.notes}）" if result.notes else ""
+        self.ss[K.NOTICE] = f"問題文を読み取りました。誤りがあれば下の入力欄で修正してください。{note}"
 
     def _run_grade(self) -> None:
         answer = (self.ss.get(K.ANSWER) or "").strip()

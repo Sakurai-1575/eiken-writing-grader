@@ -2,17 +2,18 @@
 
 [gemini]
 # 使用モデル（主モデル）。Secrets の GEMINI_MODEL があればそちらが優先されます。
-# gemini-flash-latest は Google が常に最新の Flash モデルを指す別名です（旧モデルの提供終了の影響を受けにくい）。
+# gemini-3.5-flash-lite: 軽量で混雑しにくく、応答が速い（2026-10-07 検証で 0.8 秒応答・採点成功）。
 # ※ gemini-2.5-flash / gemini-2.5-flash-lite / gemini-1.5-flash は新規利用者には提供終了（404）のため使用不可。
-model = "gemini-flash-latest"
+model = "gemini-3.5-flash-lite"
 # 主モデルが混雑（503 等）・無料枠超過（429）・タイムアウト・未提供（404）で失敗したとき、
 # 上から順に切り替えて再試行するモデル。不要なら [] にしてください。
-# 2026-10-07 時点で応答を確認済み: gemini-3.5-flash-lite（軽量・混雑しにくい）
-fallback_models = ["gemini-3.5-flash-lite"]
+# gemini-flash-latest は Google が常に最新の Flash モデルを指す別名（混雑時は応答が遅くなることがある）。
+fallback_models = ["gemini-flash-latest"]
 api_base = "https://generativelanguage.googleapis.com/v1beta"
 # 構造化出力のスキーマ指定方法: "json_schema"（responseJsonSchema） / "openapi"（responseSchema）
 schema_mode = "json_schema"
-timeout_sec = 90
+# 1 リクエストあたりの応答待ち上限（秒）。無応答のモデルで長時間止まらないよう短めにしています。
+timeout_sec = 30
 temperature_ocr = 0.0
 temperature_grading = 0.2
 max_output_tokens = 16384

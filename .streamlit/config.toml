@@ -10,4 +10,13 @@ gatherUsageStats = false
 toolbarMode = "minimal"
 
 [theme]
+# 教室・塾での利用を想定し、端末のダークモード設定に関わらず明るい配色で統一する
+base = "light"
 primaryColor = "#2563eb"
+backgroundColor = "#f4f6fa"          # ページ背景（清潔感のあるライトグレー）
+secondaryBackgroundColor = "#ffffff" # 入力欄などの背景
+textColor = "#1f2937"
+borderColor = "#e2e8f0"
+showWidgetBorder = true
+baseRadius = "medium"
+font = "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Segoe UI', Meiryo, sans-serif"

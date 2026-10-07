@@ -214,7 +214,7 @@ def test_repeated_429_raises_rate_limited(gemini_settings):
 @responses.activate
 @pytest.mark.parametrize(
     ("status", "pattern"),
-    [(400, "不正"), (403, "API キー"), (404, "gemini-flash-latest"), (500, "一時的")],
+    [(400, "不正"), (403, "API キー"), (404, "gemini-3.5-flash-lite"), (500, "一時的")],
 )
 def test_error_classification(status, pattern):
     settings = GeminiSettings(max_retries=0)

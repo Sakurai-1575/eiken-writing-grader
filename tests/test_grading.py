@@ -71,7 +71,7 @@ def test_corrections_limited_and_noop_removed(ai_output, g2_opinion):
 def test_word_count_is_local(ai_output, g2_opinion):
     report = run_post(ai_output, g2_opinion)
     assert report.word_count == count_words(SAMPLE_ANSWER)
-    assert report.paragraph_count == 4
+    assert "paragraph_count" not in report.model_dump()
 
 
 def test_input_hash_stable_and_sensitive():

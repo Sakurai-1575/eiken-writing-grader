@@ -7,8 +7,8 @@ from eiken_grader.errors import ApiKeyMissingError, ConfigError
 
 
 def test_default_model():
-    assert DEFAULT_MODEL == "gemini-flash-latest"
-    assert load_settings().gemini.model == "gemini-flash-latest"
+    assert DEFAULT_MODEL == "gemini-3.5-flash-lite"
+    assert load_settings().gemini.model == "gemini-3.5-flash-lite"
 
 
 def test_model_from_settings_file(tmp_path):

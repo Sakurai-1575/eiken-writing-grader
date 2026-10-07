@@ -28,7 +28,14 @@ from eiken_grader.core.gemini_client import GeminiClient  # noqa: E402
 from eiken_grader.core.rate_guard import RateGuard  # noqa: E402
 from eiken_grader.errors import AppError  # noqa: E402
 from eiken_grader.ui import components  # noqa: E402
-from eiken_grader.ui.state import ACTION_OCR, Controller, K, init_state  # noqa: E402
+from eiken_grader.ui.state import (  # noqa: E402
+    ACTION_OCR,
+    ACTION_QUESTION_OCR,
+    Controller,
+    K,
+    apply_widget_sync,
+    init_state,
+)
 from eiken_grader.ui.styles import CSS  # noqa: E402
 
 # 本番では答案本文・画像・API キーをログに出さない（ステータスコード・エラー種別のみ）。
@@ -38,6 +45,7 @@ app_logger = logging.getLogger("eiken_grader")
 
 BUSY_MESSAGES = {
     ACTION_OCR: "手書きの文字を読み取っています…（10〜30 秒ほどかかります）",
+    ACTION_QUESTION_OCR: "問題文を読み取っています…（10〜30 秒ほどかかります）",
 }
 DEFAULT_BUSY_MESSAGE = "AI が採点しています…（20〜60 秒ほどかかります）"
 
@@ -74,6 +82,7 @@ def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
     ss = st.session_state
     init_state(ss)
+    apply_widget_sync(ss)  # OCR 結果など、前回の処理で予約された入力欄の値をウィジェット生成前に反映
 
     secrets = read_secrets()
     debug = False

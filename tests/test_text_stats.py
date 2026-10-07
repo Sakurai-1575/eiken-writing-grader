@@ -24,10 +24,9 @@ def test_count_words(text, expected):
     assert ts.count_words(text) == expected
 
 
-def test_paragraphs():
-    assert ts.count_paragraphs("a\n\nb\n  \nc") == 3
-    assert ts.count_paragraphs("one paragraph\nwith a line break") == 1
-    assert ts.count_paragraphs("   ") == 0
+def test_paragraph_count_removed():
+    # 英検の採点観点に段落数は含まれないため、段落数の集計は提供しない
+    assert not hasattr(ts, "count_paragraphs")
 
 
 def test_markers():

@@ -48,3 +48,25 @@ def test_ocr_prompt_forbids_corrections():
 def test_transcribe_requires_images():
     with pytest.raises(ValueError):
         transcribe(object(), [])
+
+
+@responses.activate
+def test_transcribe_question_uses_question_prompt(gemini_settings, images):
+    from eiken_grader.services.ocr import transcribe_question
+    from eiken_grader.services.prompts import QUESTION_OCR_SYSTEM
+
+    url = f"{gemini_settings.api_base}/models/{gemini_settings.model}:generateContent"
+    responses.post(url, json=gemini_response({"text": "TOPIC\r\nDo you agree?\n", "uncertain_words": [], "notes": ""}))
+    result = transcribe_question(GeminiClient("k", gemini_settings, sleep=lambda s: None), images)
+    assert result.text == "TOPIC\nDo you agree?"
+    assert len(responses.calls) == 1
+    body = json.loads(responses.calls[0].request.body)
+    assert body["systemInstruction"]["parts"][0]["text"] == QUESTION_OCR_SYSTEM
+    assert sum("inline_data" in p for p in body["contents"][0]["parts"]) == 2
+
+
+def test_question_prompt_rules():
+    from eiken_grader.services.prompts import QUESTION_OCR_SYSTEM
+
+    for phrase in ("TOPIC", "POINTS", "Do not translate, summarize, or correct", "handwritten answers", "<u>"):
+        assert phrase in QUESTION_OCR_SYSTEM

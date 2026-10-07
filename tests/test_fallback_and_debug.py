@@ -41,7 +41,8 @@ def overloaded() -> dict:
 # --- 設定 -------------------------------------------------------------------
 def test_settings_file_default_and_fallback():
     g = load_settings().gemini
-    assert g.model_chain == ["gemini-flash-latest", "gemini-3.5-flash-lite"]
+    assert g.model_chain == ["gemini-3.5-flash-lite", "gemini-flash-latest"]
+    assert g.timeout_sec == 30
     # 新規利用者に提供終了（404）済みのモデルは使わない
     for retired in ("gemini-1.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"):
         assert retired not in g.model_chain
@@ -53,7 +54,7 @@ def test_model_chain_dedupes_and_secret_override_keeps_fallbacks():
     g = GeminiSettings(model="a", fallback_models=["b", "a", " ", "c"])
     assert g.model_chain == ["a", "b", "c"]
     s = load_settings(secrets={"GEMINI_MODEL": "gemini-x"})
-    assert s.gemini.model_chain == ["gemini-x", "gemini-3.5-flash-lite"]
+    assert s.gemini.model_chain == ["gemini-x", "gemini-flash-latest"]
 
 
 # --- フォールバック -----------------------------------------------------------
