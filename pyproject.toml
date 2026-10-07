@@ -1,0 +1,24 @@
+[project]
+name = "eiken-writing-grader"
+version = "0.1.0"
+description = "手書き英検ライティング自動採点・学習支援 Web アプリ"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+addopts = "-m 'not live'"
+markers = [
+    "live: 実際の Gemini API を呼び出すテスト（既定ではスキップ。-m live で実行）",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["eiken_grader", "tests"]

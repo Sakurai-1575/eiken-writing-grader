@@ -1,0 +1,7 @@
+# 本番依存（Streamlit Community Cloud がこのファイルを読み込みます）
+streamlit==1.65.0
+requests==2.34.2
+pydantic==2.13.5
+pillow==12.3.0
+pillow-heif==1.8.0
+fpdf2==2.8.9

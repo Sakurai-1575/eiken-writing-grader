@@ -1,0 +1,30 @@
+# --- Secrets (絶対にコミットしない) ---
+.streamlit/secrets.toml
+.env
+*.key
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# --- Test / tooling ---
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- 生成物（個人データを含み得るため） ---
+*.pdf
+!tests/fixtures/*.pdf
+reports_out/
+
+# --- OS / Editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,49 @@
+# アプリ設定。値を変更したらアプリを再起動してください。
+
+[gemini]
+# 使用モデル（主モデル）。Secrets の GEMINI_MODEL があればそちらが優先されます。
+# gemini-flash-latest は Google が常に最新の Flash モデルを指す別名です（旧モデルの提供終了の影響を受けにくい）。
+# ※ gemini-2.5-flash / gemini-2.5-flash-lite / gemini-1.5-flash は新規利用者には提供終了（404）のため使用不可。
+model = "gemini-flash-latest"
+# 主モデルが混雑（503 等）・無料枠超過（429）・タイムアウト・未提供（404）で失敗したとき、
+# 上から順に切り替えて再試行するモデル。不要なら [] にしてください。
+# 2026-10-07 時点で応答を確認済み: gemini-3.5-flash-lite（軽量・混雑しにくい）
+fallback_models = ["gemini-3.5-flash-lite"]
+api_base = "https://generativelanguage.googleapis.com/v1beta"
+# 構造化出力のスキーマ指定方法: "json_schema"（responseJsonSchema） / "openapi"（responseSchema）
+schema_mode = "json_schema"
+timeout_sec = 90
+temperature_ocr = 0.0
+temperature_grading = 0.2
+max_output_tokens = 16384
+# 1 モデルあたりの再試行回数（429 / 5xx / タイムアウト時。スキーマ不一致では再試行しません）
+max_retries = 1
+# 再試行の待機: base × 2^n 秒 + 0〜1 秒のゆらぎ（上限 backoff_max_sec）→ 約 3 秒
+# 混雑が続く場合は長く待つより早めにフォールバックモデルへ切り替える設定にしています
+backoff_base_sec = 3.0
+backoff_max_sec = 20.0
+
+[rate_limit]
+# 無料枠の公表値より保守的な値にしています（アプリ全体での上限。再試行・フォールバックも 1 回と数えます）
+rpm = 8
+rpd = 200
+# 同一セッション内で API を呼ぶ操作の最小間隔（秒）
+cooldown_sec = 10
+
+[image]
+max_upload_mb = 10
+max_images = 2
+max_long_edge_px = 2000
+jpeg_quality = 85
+
+[grading]
+# PDF 2 ページに収めるための添削件数の上限
+max_corrections = 10
+
+[debug]
+# 開発モード: エラー時に HTTP ステータス・Google のエラー本文・スキーマ検証エラーなどの詳細を
+# 端末ログと画面（「開発者向け詳細」欄）に表示します。
+#   "auto" … ローカル実行時のみ ON（Streamlit Community Cloud 上では自動で OFF）
+#   "on" / "off" … 強制的に切り替え
+# Secrets に DEBUG = true / false を書くと、この設定より優先されます。
+mode = "auto"

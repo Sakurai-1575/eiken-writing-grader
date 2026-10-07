@@ -1,0 +1,48 @@
+{
+  "off_topic": false,
+  "scores": [
+    {
+      "criterion": "内容",
+      "score": 3,
+      "rationale": "「賛成」という意見を明確に示し、理由を2つ挙げている。2つ目の理由の具体例がやや抽象的で、説得力に欠ける部分がある。",
+      "good_points": ["冒頭で意見をはっきり述べている", "理由が2つ示されている"],
+      "improvements": ["2つ目の理由に具体例（自分の経験など）を加える"]
+    },
+    {
+      "criterion": "構成",
+      "score": 3,
+      "rationale": "First / Second / In conclusion などのつなぎ言葉で流れが分かりやすい。結論部分が序論とほぼ同じ表現で単調。",
+      "good_points": ["序論・本論・結論の型が守られている"],
+      "improvements": ["結論は序論と違う表現で言い換える"]
+    },
+    {
+      "criterion": "語彙",
+      "score": 2,
+      "rationale": "基本的な語彙は使えているが、スペルミス（becuase, enviroment）や同じ語の繰り返し（good）が目立つ。",
+      "good_points": ["課題に関連する語（environment, energy）を使おうとしている"],
+      "improvements": ["スペルを見直す", "good の言い換え（beneficial, useful）を使う"]
+    },
+    {
+      "criterion": "文法",
+      "score": 2,
+      "rationale": "主語と動詞の一致の誤り（people uses）や冠詞の脱落がある。文構造が単調で、複文がほとんど使われていない。",
+      "good_points": ["基本的な文型は正しく使えている"],
+      "improvements": ["三単現の s に注意", "because や if を使った複文に挑戦する"]
+    }
+  ],
+  "corrections": [
+    {"original": "becuase", "corrected": "because", "category": "スペル", "explanation": "because のつづりの誤りです。"},
+    {"original": "people uses", "corrected": "people use", "category": "文法", "explanation": "people は複数扱いなので動詞に s は付けません。"},
+    {"original": "enviroment", "corrected": "environment", "category": "スペル", "explanation": "environment は n が 2 回出てきます。"},
+    {"original": "it is good for earth", "corrected": "it is good for the earth", "category": "文法", "explanation": "唯一のものを表す earth には the を付けます。"},
+    {"original": "This sentence does not exist in the answer", "corrected": "Something else", "category": "その他", "explanation": "答案に存在しない指摘（検証テスト用）。"}
+  ],
+  "improved_answer": "I agree that more people will use electric cars in the future. First, electric cars are better for the environment because they do not produce exhaust gas. Second, they are becoming cheaper, so many families will be able to buy them. For these reasons, I believe electric cars will become more popular.",
+  "model_answer": "I think more people will use electric cars in the future. First, electric cars are environmentally friendly. They do not emit exhaust gases, so they can help reduce air pollution in cities. Second, the cost of electric cars is decreasing as technology improves. Many governments also offer financial support to buyers. Therefore, I believe electric cars will become common in the near future.",
+  "overall_comment": "意見と理由がはっきりしていて、読み手に伝わる答案です。スペルと三単現の s を見直すだけで、語彙・文法の点数が上がります。次は理由に具体例を加えて、内容をさらに充実させましょう。",
+  "next_steps": [
+    "答案を書き終えたら、スペルと動詞の形を見直す時間を1分取る",
+    "理由ごとに「具体例」や「自分の経験」を1文加える練習をする",
+    "good / bad などの基本語の言い換え表現を5つずつ覚える"
+  ]
+}

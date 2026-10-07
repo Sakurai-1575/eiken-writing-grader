@@ -1,0 +1,13 @@
+[server]
+# アップロード上限（MB）。config/settings.toml の image.max_upload_mb と揃える
+maxUploadSize = 10
+
+[browser]
+# 利用統計を送信しない
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+
+[theme]
+primaryColor = "#2563eb"
