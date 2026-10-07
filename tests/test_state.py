@@ -128,13 +128,14 @@ def test_cooldown_blocks_new_api_call(ss, ctx):
     ready_for_grading(ss)
     S.request_action(ss, S.ACTION_GRADE)
     ctrl.run_pending()
+    assert ctrl.settings.rate_limit.cooldown_sec == 0.5  # テンポを損なわない短い間隔
     ss[K.ANSWER] = SAMPLE_ANSWER + " Another sentence."
-    clock.t += 3
+    clock.t += 0.2  # 0.5 秒以内の連続操作だけを止める
     S.request_action(ss, S.ACTION_GRADE)
     ctrl.run_pending()
     assert "秒お待ちください" in ss[K.ERROR]
     assert len(client.calls) == 1
-    clock.t += 10
+    clock.t += 0.4  # 前回から 0.6 秒後 → 実行できる
     S.request_action(ss, S.ACTION_GRADE)
     ctrl.run_pending()
     assert len(client.calls) == 2 and ss[K.ERROR] is None

@@ -70,7 +70,7 @@ class GeminiSettings(BaseModel):
 class RateLimitSettings(BaseModel):
     rpm: int = Field(default=8, ge=1)
     rpd: int = Field(default=200, ge=1)
-    cooldown_sec: float = Field(default=10, ge=0)
+    cooldown_sec: float = Field(default=0.5, ge=0)
 
 
 class ImageSettings(BaseModel):

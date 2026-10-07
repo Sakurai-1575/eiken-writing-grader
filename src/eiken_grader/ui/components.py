@@ -217,9 +217,10 @@ def _image_input(settings: AppSettings, prefix: str, label: str) -> list[Prepare
     for msg in dict.fromkeys(errors):
         st.warning(msg)
     if images:
-        cols = st.columns(len(images))
-        for i, (col, img) in enumerate(zip(cols, images, strict=True), 1):
-            col.image(img.data, caption=f"{i} 枚目", width="stretch")
+        # 画面を占有しないよう、プレビューは初期状態では折りたたむ
+        with st.expander(f"📷 取り込んだ写真を確認する（{len(images)} 枚）", expanded=False):
+            for i, img in enumerate(images, 1):
+                st.image(img.data, caption=f"{i} 枚目", width="stretch")
     return images
 
 
@@ -288,11 +289,12 @@ def render_setup(rubrics: Rubrics, settings: AppSettings) -> None:
     with _panel("question"):
         st.markdown('<div class="eg-panel-title">問題文</div>', unsafe_allow_html=True)
         st.segmented_control(
-            "問題文の入力方法", [Q_MODE_TYPE, Q_MODE_IMAGE], default=Q_MODE_TYPE, required=True,
+            "問題文の入力方法", [Q_MODE_IMAGE, Q_MODE_TYPE], default=Q_MODE_IMAGE, required=True,
             key=W_Q_MODE, disabled=_busy(), label_visibility="collapsed",
         )
-        # 手入力モードでは API を一切呼ばない。画像モードでも「読み取る」ボタンを押したときだけ 1 回呼ぶ
-        if ss.get(W_Q_MODE, Q_MODE_TYPE) == Q_MODE_IMAGE:
+        # 初期値は OCR（答案と同じく写真から取り込む動線に統一）。
+        # 画像モードでも「読み取る」ボタンを押したときだけ API を 1 回呼ぶ。手入力モードでは呼ばない
+        if ss.get(W_Q_MODE, Q_MODE_IMAGE) == Q_MODE_IMAGE:
             images = _image_input(settings, PREFIX_QUESTION, "問題用紙の写真")
             st.button(
                 "問題文を読み取る（AI）",
@@ -401,7 +403,7 @@ def render_review(rubrics: Rubrics) -> None:
         st.markdown('<div class="eg-panel-title">答案の確認・修正</div>', unsafe_allow_html=True)
         if images:
             st.caption("画像と見比べて読み取りミスだけを直してください。スペル・文法の誤りは採点対象なのでそのままにします。")
-            with st.expander("📷 答案画像を見る", expanded=False):
+            with st.expander("📷 答案画像を確認する", expanded=False):
                 for i, img in enumerate(images, 1):
                     st.image(img.data, caption=f"{i} 枚目", width="stretch")
         if ocr is not None and ocr.notes:

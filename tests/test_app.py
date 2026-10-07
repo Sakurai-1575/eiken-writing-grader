@@ -182,10 +182,18 @@ def test_review_shows_word_count_without_paragraphs():
     assert "段落" not in page
 
 
-def test_question_manual_mode_is_default_and_calls_no_api():
+def test_question_ocr_mode_is_default():
+    at = new_app().run()
+    assert at.session_state["w_q_mode"] == components.Q_MODE_IMAGE  # 答案と同じく OCR を第一優先の動線に
+    assert at.get("file_uploader")
+    assert button(at, "問題文を読み取る").disabled  # 画像が無いうちは押せない（API も呼ばない）
+
+
+def test_question_manual_mode_calls_no_api():
     with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
         at = new_app().run()
-        assert at.session_state["w_q_mode"] == components.Q_MODE_TYPE
+        at.session_state["w_q_mode"] = components.Q_MODE_TYPE
+        at.run()
         assert not at.get("file_uploader")  # 手入力モードではアップローダーを出さない
         at.text_area(key="w_question").input(SAMPLE_QUESTION).run()
         button(at, "次へ").click().run()
@@ -244,3 +252,38 @@ def test_stepper_marks_current_and_done_steps():
     at.run()
     stepper = next(m.value for m in at.markdown if m.value.startswith('<ol class="eg-stepper"'))
     assert stepper.count('class="eg-stp done"') == 2 and "✓" in stepper
+
+
+def test_busy_messages_have_no_time_estimates():
+    import ast
+
+    tree = ast.parse((Path(APP)).read_text(encoding="utf-8"))
+    texts = [n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+    busy = [t for t in texts if t.endswith("ています…")]
+    assert set(busy) == {"手書きの文字を読み取っています…", "問題文を読み取っています…", "AI が採点しています…"}
+    assert not any("秒" in t for t in busy)
+
+
+def test_header_has_enough_top_padding():
+    from eiken_grader.ui.styles import CSS
+
+    assert "padding-top: calc(3.25rem + env(safe-area-inset-top, 0px)) !important;" in CSS
+
+
+def test_review_answer_images_are_collapsed():
+    from eiken_grader.services.image_utils import prepare_image
+    from tests.conftest import make_image_bytes
+
+    at = new_app().run()
+    at.session_state["grade_id"] = "g2"
+    at.session_state["task_id"] = "opinion"
+    at.session_state["question"] = SAMPLE_QUESTION
+    at.session_state["answer"] = SAMPLE_ANSWER
+    at.session_state["images"] = [prepare_image(make_image_bytes())]
+    at.session_state["step"] = 3
+    at.run()
+    exp = [e for e in at.expander if e.label == "📷 答案画像を確認する"]
+    assert len(exp) == 1
+    assert exp[0].proto.expanded is False  # 初期状態は折りたたみ
+    assert len(exp[0].get("image")) == 1  # 画像は折りたたみの中にだけある
+    assert len(at.get("image")) == 1

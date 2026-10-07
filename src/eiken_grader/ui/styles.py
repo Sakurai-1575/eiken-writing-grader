@@ -33,7 +33,8 @@ CSS = """
 /* ---- レイアウト ---------------------------------------------------- */
 .block-container {
     max-width: 760px;
-    padding-top: 1.6rem;
+    /* Streamlit Cloud の上部バーや iOS Safari の UI と重ならないよう十分な上余白を確保（ノッチ端末も考慮） */
+    padding-top: calc(3.25rem + env(safe-area-inset-top, 0px)) !important;
     padding-bottom: 4rem;
     padding-left: 14px;
     padding-right: 14px;

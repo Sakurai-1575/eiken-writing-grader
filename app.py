@@ -44,10 +44,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 app_logger = logging.getLogger("eiken_grader")
 
 BUSY_MESSAGES = {
-    ACTION_OCR: "手書きの文字を読み取っています…（10〜30 秒ほどかかります）",
-    ACTION_QUESTION_OCR: "問題文を読み取っています…（10〜30 秒ほどかかります）",
+    ACTION_OCR: "手書きの文字を読み取っています…",
+    ACTION_QUESTION_OCR: "問題文を読み取っています…",
 }
-DEFAULT_BUSY_MESSAGE = "AI が採点しています…（20〜60 秒ほどかかります）"
+DEFAULT_BUSY_MESSAGE = "AI が採点しています…"
 
 
 @st.cache_resource
