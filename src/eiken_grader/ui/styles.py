@@ -160,10 +160,19 @@ textarea, input, select, [data-baseweb="select"] * { font-size: 16px !important;
     background: var(--eg-card); border: 1px solid var(--eg-border); border-left: 5px solid var(--eg-primary);
     border-radius: 12px; box-shadow: var(--eg-shadow); padding: 10px 14px; margin: 10px 0; color: var(--eg-text);
 }
-.eg-corr .pair { margin: 6px 0 4px 0; font-size: 1.08rem; line-height: 1.6; font-family: var(--eg-font-en); }
-.eg-corr .orig { color: var(--eg-bad); text-decoration: line-through; }
-.eg-corr .arrow { margin: 0 8px; color: var(--eg-muted); }
-.eg-corr .new { color: var(--eg-ok); font-weight: 700; }
+.eg-corr .pair { margin: 8px 0 6px 0; font-size: 1.08rem; line-height: 2; font-family: var(--eg-font-en); }
+/* 修正前・修正後は背景ハイライトのバッジで表示する。
+   打消し線は文字に重なって読みにくいため使わず、修正前には文字から離した薄い波線の下線だけを付ける */
+.eg-corr .orig, .eg-corr .new {
+    display: inline; padding: 2px 6px; border-radius: 4px;
+    -webkit-box-decoration-break: clone; box-decoration-break: clone;  /* 折り返しても各行がバッジ表示 */
+}
+.eg-corr .orig {
+    background-color: #fee2e2; color: #dc2626; font-weight: 500;
+    text-decoration: underline wavy #fca5a5; text-decoration-thickness: 1px; text-underline-offset: 4px;
+}
+.eg-corr .new { background-color: #dcfce7; color: #16a34a; font-weight: 700; }
+.eg-corr .arrow { margin: 0 8px; color: var(--eg-muted); font-weight: 700; }
 .eg-corr .cat {
     font-size: 0.76rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;
     background: var(--eg-primary-soft); color: var(--eg-primary);

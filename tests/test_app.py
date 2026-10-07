@@ -323,3 +323,22 @@ def test_answer_mode_default_is_ocr():
     at.run()
     assert at.session_state["w_mode"] == components.MODE_IMAGE
     assert at.get("file_uploader")
+
+
+def test_correction_card_uses_highlight_badges_not_strikethrough():
+    from eiken_grader.models.schemas import VerifiedCorrection
+    from eiken_grader.ui.styles import CSS
+
+    c = VerifiedCorrection(original="people <uses>", corrected="people use", category="文法",
+                           explanation="三単現の s は不要", verified=True)
+    html = components.correction_card(2, c)
+    assert '<span class="orig" title="修正前">people &lt;uses&gt;</span>' in html  # エスケープ済み
+    assert '<span class="arrow" aria-label="を修正">➔</span>' in html
+    assert '<span class="new" title="修正後">people use</span>' in html
+    assert "（参考）" not in html
+    assert "（参考）" in components.correction_card(1, c.model_copy(update={"verified": False}))
+    # 打消し線は使わず、背景ハイライトのバッジで表示する
+    assert "line-through" not in CSS
+    assert "background-color: #fee2e2; color: #dc2626;" in CSS
+    assert "background-color: #dcfce7; color: #16a34a; font-weight: 700;" in CSS
+    assert "box-decoration-break: clone" in CSS

@@ -16,7 +16,7 @@ import streamlit as st
 
 from eiken_grader.config import AppSettings, Rubrics
 from eiken_grader.errors import AppError
-from eiken_grader.models.schemas import GradingReport
+from eiken_grader.models.schemas import GradingReport, VerifiedCorrection
 from eiken_grader.reports.markdown_report import report_filename
 from eiken_grader.services import text_stats
 from eiken_grader.services.image_utils import ACCEPTED_TYPES, PreparedImage, prepare_image
@@ -462,6 +462,18 @@ def _score_card(criterion: str, score: int, max_score: int, rationale: str) -> s
     )
 
 
+def correction_card(i: int, c: VerifiedCorrection) -> str:
+    """添削カード。修正前（薄い赤）➔ 修正後（薄い緑）を背景ハイライトのバッジで表示する（打消し線は使わない）。"""
+    ref = "（参考）" if not c.verified else ""
+    return (
+        f'<div class="eg-corr"><div><span class="cat">{i}. {_esc(c.category)}{ref}</span></div>'
+        f'<div class="pair"><span class="orig" title="修正前">{_esc(c.original)}</span>'
+        f'<span class="arrow" aria-label="を修正">➔</span>'
+        f'<span class="new" title="修正後">{_esc(c.corrected)}</span></div>'
+        f'<div class="exp">{_esc(c.explanation)}</div></div>'
+    )
+
+
 def _section(num: int, title: str) -> None:
     st.markdown(
         f'<div class="eg-section"><span class="no">{num}</span>{_esc(title)}</div>', unsafe_allow_html=True
@@ -502,14 +514,7 @@ def render_result() -> None:
     if not r.corrections:
         st.success("大きな誤りは見つかりませんでした。")
     for i, c in enumerate(r.corrections, 1):
-        ref = "（参考）" if not c.verified else ""
-        st.markdown(
-            f'<div class="eg-corr"><div><span class="cat">{i}. {_esc(c.category)}{ref}</span></div>'
-            f'<div class="pair"><span class="orig">{_esc(c.original)}</span>'
-            f'<span class="arrow">→</span><span class="new">{_esc(c.corrected)}</span></div>'
-            f'<div class="exp">{_esc(c.explanation)}</div></div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown(correction_card(i, c), unsafe_allow_html=True)
     if any(not c.verified for c in r.corrections):
         st.caption("※（参考）は答案中に同じ表現が見つからなかった指摘です。")
 
