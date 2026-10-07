@@ -41,13 +41,16 @@ STEP_LABELS = ["問題設定", "答案取込", "確認・修正", "採点結果"
 PREFIX_QUESTION = "q_"
 PREFIX_ANSWER = ""
 
+# 入力方法の選択肢。先頭（index=0）が初期選択で、問題文・答案とも OCR（写真）を第一優先にする
 W_MODE = "w_mode"
 MODE_IMAGE = "📷 写真から読み取る"
 MODE_TYPE = "⌨️ 直接入力"
+MODE_OPTIONS = [MODE_IMAGE, MODE_TYPE]
 
 W_Q_MODE = "w_q_mode"
-Q_MODE_TYPE = "⌨️ 手入力"
 Q_MODE_IMAGE = "📷 問題用紙を撮影・アップロード"
+Q_MODE_TYPE = "⌨️ 手入力"
+Q_MODE_OPTIONS = [Q_MODE_IMAGE, Q_MODE_TYPE]
 
 AUTH_MAX_FAILS = 5
 AUTH_LOCK_SEC = 60
@@ -150,6 +153,17 @@ def passcode_gate(passcode: str | None) -> bool:
 
 def _copy(widget_key: str, store_key: str) -> None:
     st.session_state[store_key] = st.session_state.get(widget_key)
+
+
+def _mode_selector(label: str, key: str, options: list[str]) -> str:
+    """入力方法の切替（ピル型）。初期値・不正な値は必ず先頭の選択肢（index=0）にする。"""
+    ss = st.session_state
+    if ss.get(key) not in options:  # 初回表示・旧バージョンの値が残っている場合など
+        ss[key] = options[0]
+    st.segmented_control(
+        label, options, required=True, key=key, disabled=_busy(), label_visibility="collapsed"
+    )
+    return ss.get(key) or options[0]
 
 
 # ---------------------------------------------------------------------------
@@ -288,13 +302,10 @@ def render_setup(rubrics: Rubrics, settings: AppSettings) -> None:
 
     with _panel("question"):
         st.markdown('<div class="eg-panel-title">問題文</div>', unsafe_allow_html=True)
-        st.segmented_control(
-            "問題文の入力方法", [Q_MODE_IMAGE, Q_MODE_TYPE], default=Q_MODE_IMAGE, required=True,
-            key=W_Q_MODE, disabled=_busy(), label_visibility="collapsed",
-        )
-        # 初期値は OCR（答案と同じく写真から取り込む動線に統一）。
-        # 画像モードでも「読み取る」ボタンを押したときだけ API を 1 回呼ぶ。手入力モードでは呼ばない
-        if ss.get(W_Q_MODE, Q_MODE_IMAGE) == Q_MODE_IMAGE:
+        # 初期値は OCR（index=0）。画像モードでも「読み取る」ボタンを押したときだけ API を 1 回呼び、
+        # 手入力モードでは呼ばない
+        q_mode = _mode_selector("問題文の入力方法", W_Q_MODE, Q_MODE_OPTIONS)
+        if q_mode == Q_MODE_IMAGE:
             images = _image_input(settings, PREFIX_QUESTION, "問題用紙の写真")
             st.button(
                 "問題文を読み取る（AI）",
@@ -346,11 +357,7 @@ def render_capture(settings: AppSettings) -> None:
     ss = st.session_state
     with _panel("capture"):
         st.markdown('<div class="eg-panel-title">答案</div>', unsafe_allow_html=True)
-        st.segmented_control(
-            "取り込み方法", [MODE_IMAGE, MODE_TYPE], default=MODE_IMAGE, required=True, key=W_MODE,
-            disabled=_busy(), label_visibility="collapsed",
-        )
-        if ss.get(W_MODE, MODE_IMAGE) == MODE_TYPE:
+        if _mode_selector("取り込み方法", W_MODE, MODE_OPTIONS) == MODE_TYPE:
             st.caption("答案の英文をキーボードで入力して採点します。")
             st.button("答案を入力する →", type="primary", width="stretch", on_click=_on_direct_input,
                       disabled=_busy())

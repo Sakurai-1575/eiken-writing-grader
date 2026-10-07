@@ -183,8 +183,15 @@ def test_review_shows_word_count_without_paragraphs():
 
 
 def test_question_ocr_mode_is_default():
+    assert components.Q_MODE_OPTIONS.index(components.Q_MODE_IMAGE) == 0  # 先頭（index=0）が OCR
+    assert components.MODE_OPTIONS.index(components.MODE_IMAGE) == 0
     at = new_app().run()
     assert at.session_state["w_q_mode"] == components.Q_MODE_IMAGE  # 答案と同じく OCR を第一優先の動線に
+    pills = at.get("button_group")
+    # 先頭の絵文字はアイコンとして分離表示されるため、ラベル本文で並び順を確認する
+    shown = [pills[0].proto.options[i].content for i in range(2)]
+    expected = ["問題用紙を撮影・アップロード", "手入力"]
+    assert shown == [o.split(" ", 1)[1] for o in components.Q_MODE_OPTIONS] == expected
     assert at.get("file_uploader")
     assert button(at, "問題文を読み取る").disabled  # 画像が無いうちは押せない（API も呼ばない）
 
@@ -265,9 +272,17 @@ def test_busy_messages_have_no_time_estimates():
 
 
 def test_header_has_enough_top_padding():
+    import re
+
     from eiken_grader.ui.styles import CSS
 
-    assert "padding-top: calc(3.25rem + env(safe-area-inset-top, 0px)) !important;" in CSS
+    # Streamlit Cloud の固定ヘッダーの下からコンテンツが始まるよう 5rem 以上の上余白を強制
+    m = re.search(r"padding-top: calc\(([\d.]+)rem \+ env\(safe-area-inset-top, 0px\)\) !important;", CSS)
+    assert m and float(m.group(1)) >= 5
+    for selector in (".block-container", ".main .block-container", '[data-testid="stMainBlockContainer"]'):
+        assert selector in CSS
+    # 標準ヘッダーは背景を透明に
+    assert re.search(r'header\[data-testid="stHeader"\] \{\s*background: transparent !important;', CSS)
 
 
 def test_review_answer_images_are_collapsed():
@@ -287,3 +302,24 @@ def test_review_answer_images_are_collapsed():
     assert exp[0].proto.expanded is False  # 初期状態は折りたたみ
     assert len(exp[0].get("image")) == 1  # 画像は折りたたみの中にだけある
     assert len(at.get("image")) == 1
+
+
+@pytest.mark.parametrize("stale", [None, "⌨️ 手入力（旧ラベル）", "unknown"])
+def test_question_mode_falls_back_to_ocr_for_stale_values(stale):
+    at = new_app()
+    at.session_state["w_q_mode"] = stale
+    at.run()
+    assert not at.exception
+    assert at.session_state["w_q_mode"] == components.Q_MODE_IMAGE
+    assert at.get("file_uploader")
+
+
+def test_answer_mode_default_is_ocr():
+    at = new_app().run()
+    at.session_state["grade_id"] = "g2"
+    at.session_state["task_id"] = "opinion"
+    at.session_state["question"] = SAMPLE_QUESTION
+    at.session_state["step"] = 2
+    at.run()
+    assert at.session_state["w_mode"] == components.MODE_IMAGE
+    assert at.get("file_uploader")

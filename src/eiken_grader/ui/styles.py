@@ -31,13 +31,22 @@ CSS = """
 }
 
 /* ---- レイアウト ---------------------------------------------------- */
-.block-container {
+/* Streamlit の固定ヘッダー（Cloud では 60〜80px 程度）の下からコンテンツが始まるよう、
+   どのバージョンのセレクタでも確実に上余白 5rem（+ ノッチ端末の safe-area）を確保する */
+.block-container,
+.main .block-container,
+.stApp [data-testid="stMainBlockContainer"],
+.stApp [data-testid="block-container"] {
     max-width: 760px;
-    /* Streamlit Cloud の上部バーや iOS Safari の UI と重ならないよう十分な上余白を確保（ノッチ端末も考慮） */
-    padding-top: calc(3.25rem + env(safe-area-inset-top, 0px)) !important;
+    padding-top: calc(5rem + env(safe-area-inset-top, 0px)) !important;
     padding-bottom: 4rem;
     padding-left: 14px;
     padding-right: 14px;
+}
+/* 標準ヘッダーは背景を透明にし、タイトルの上に色の付いた帯が重ならないようにする */
+header[data-testid="stHeader"] {
+    background: transparent !important;
+    box-shadow: none !important;
 }
 [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"], [data-testid="collapsedControl"] {
     display: none;
